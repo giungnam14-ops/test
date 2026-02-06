@@ -5,11 +5,8 @@ import {
     History,
     LayoutDashboard,
     LogOut,
-    ChevronRight,
     AlertTriangle,
     FileText,
-    Plus,
-    Upload,
     X,
     Loader2
 } from 'lucide-react'
