@@ -183,8 +183,7 @@ export default function App() {
         try {
             console.log(`[Beaver Sync] Sending ${provider} user data to backend server...`, userData);
 
-            // 실제 로컬 서버(http://localhost:4000)로 데이터 전송 시도
-            const response = await fetch('http://localhost:4000/api/users', {
+            const response = await fetch('http://localhost:4005/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -193,16 +192,12 @@ export default function App() {
             if (response.ok) {
                 const result = await response.json();
                 console.log("[Beaver Sync] Success:", result);
-                alert(`[DBeaver 실시간 연동 성공]\n${userData.name}님의 정보가 SQLite DB에 저장되었습니다.\n\n지금 DBeaver에서 확인해 보세요!`);
+                alert(`[DBeaver 실시간 연동 성공]\n${userData.name}님의 정보가 SQLite DB에 저장되었습니다.`);
             } else {
-                // 서버가 실행 중이지 않을 때를 대비한 시뮬레이션 유지
-                console.warn("[Beaver Sync] Server not reachable. Check if 'node server.js' is running.");
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                alert(`[시뮬레이션 모드]\n백엔드 서버(node server.js)가 실행되지 않아 데이터가 로컬에만 저장되었습니다.\n실제 DBeaver 연동을 위해 터미널에서 서버를 실행해 주세요.`);
+                console.warn("[Beaver Sync] Server error or token invalid.");
             }
         } catch (error) {
             console.error("[Beaver Sync] Connection failed:", error);
-            alert(`[DBeaver 연동 알림]\n로컬 백엔드 서버(http://localhost:4000)가 응답하지 않습니다.\n데이터를 기록하려면 'node server.js'를 실행해야 합니다.`);
         }
     };
 
@@ -285,7 +280,13 @@ export default function App() {
                             }).join(''));
 
                             const profile = JSON.parse(jsonPayload);
-                            const unifiedProfile = { ...profile, provider: 'google' };
+                            const unifiedProfile = {
+                                name: profile.name,
+                                email: profile.email,
+                                picture: profile.picture,
+                                provider: 'google',
+                                credential: response.credential // 백엔드 검증을 위해 원본 토큰 포함
+                            };
                             setUser(unifiedProfile);
                             setIsLoggedIn(true);
                             saveUserToBackend(unifiedProfile, 'google');
