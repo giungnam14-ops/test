@@ -71,9 +71,30 @@ export default function App() {
     const [currentReport, setCurrentReport] = useState<Inspection | null>(null)
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [hoveredMarker, setHoveredMarker] = useState<Marker | null>(null)
+    const [isManualEntry, setIsManualEntry] = useState(false)
+    const [manualData, setManualData] = useState({ name: '', address: '', image: '' })
 
     // Mock Data: Professional Buildings for Search
     const [buildings] = useState<Building[]>([
+        {
+            id: 'b5',
+            name: '송파구 롯데월드타워 (LWT-123)',
+            address: '서울시 송파구 올림픽로 300',
+            type: '랜드마크 (초고층 빌딩)',
+            year: '2017',
+            image: 'https://images.unsplash.com/photo-1578130860806-78e70a6a7065?q=80&w=1000',
+            score: 98,
+            expertAnalysis: '대상 건축물은 국내 최고층 랜드마크로서 최신 지진 격리 시스템 및 동적 변위 제어 기술이 적용되어 있습니다. 코어벽체 및 메가 칼럼의 응력 분포는 설계 범위를 완벽히 충족하며, 고층부 수직 변위 역시 정밀 GPS 계측 결과 오차 범위 이내에서 안정화되었습니다. 외벽 커튼월 유닛의 풍압 저항 성능 및 기밀성 또한 우수하며, 하부 기초 매트의 부동 침하 가능성은 영(Zero)에 가깝습니다.',
+            recommendations: [
+                '초고층부 GPS 변위 모니터링 시스템 정기 캘리브레이션',
+                '수직 수송 시스템(엘리베이터) 가이드 레일 정밀 하중 점검',
+                '전망대 부근 클리닝 로봇 구동 경로 유격 보정'
+            ],
+            markers: [
+                { x: 50, y: 10, label: "최상층부 첨탑부 풍압 안정성 양호", type: 'SAFE' as any },
+                { x: 50, y: 50, label: "중층부 벨트 트러스 구간 구조 연결점 건전", type: 'SAFE' as any }
+            ]
+        },
         {
             id: 'b1',
             name: '강남구 테헤란로 엔타워 (GA-152)',
@@ -282,8 +303,8 @@ export default function App() {
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id)}
                                 className={`w-full flex items-center gap-6 px-7 py-5 rounded-[2rem] transition-all duration-500 group ${activeTab === item.id
-                                        ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20 shadow-lg shadow-blue-600/5'
-                                        : 'text-slate-600 hover:text-white hover:bg-white/5 border border-transparent'
+                                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20 shadow-lg shadow-blue-600/5'
+                                    : 'text-slate-600 hover:text-white hover:bg-white/5 border border-transparent'
                                     }`}
                             >
                                 <item.icon size={22} className="group-hover:scale-110 transition-transform" />
@@ -715,24 +736,134 @@ export default function App() {
                                                     </div>
                                                 </motion.button>
                                             )) : (
-                                                <div className="py-32 text-center space-y-6">
+                                                <div className="py-32 text-center space-y-8">
                                                     <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mx-auto text-slate-700 animate-pulse"><Search size={48} /></div>
-                                                    <div className="space-y-2 text-slate-700">
+                                                    <div className="space-y-4 text-slate-700">
                                                         <p className="font-black uppercase tracking-[0.4em] text-sm">일치하는 건물 데이터가 없습니다</p>
-                                                        <p className="font-bold text-base">다른 건물명으로 다시 검색해 주세요.</p>
+                                                        <p className="font-bold text-base">직접 사진을 등록하여 정밀 진단을 수행하시겠습니까?</p>
                                                     </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setManualData({ ...manualData, name: searchQuery });
+                                                            setIsManualEntry(true);
+                                                        }}
+                                                        className="px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20"
+                                                    >
+                                                        현장 직접 등록 및 분석 시작
+                                                    </button>
                                                 </div>
                                             )
                                         ) : (
                                             <div className="py-24 text-center space-y-8">
                                                 <p className="text-slate-700 font-black uppercase tracking-[0.5em] text-xs">Search initialized. Waiting for Query...</p>
                                                 <div className="flex justify-center gap-4 flex-wrap max-w-2xl mx-auto">
-                                                    {['테헤란로', '아크로리버', '트리마제', '송도 타워'].map(suggest => (
+                                                    {['롯데월드타워', '테헤란로', '아크로리버', '트리마제', '송도 타워'].map(suggest => (
                                                         <button key={suggest} onClick={() => setSearchQuery(suggest)} className="px-6 py-3 rounded-full bg-white/5 border border-white/5 text-slate-500 text-sm font-bold hover:bg-white/10 hover:text-white transition-all">#{suggest}</button>
                                                     ))}
                                                 </div>
+                                                <div className="pt-8 flex flex-col items-center gap-4">
+                                                    <div className="w-px h-12 bg-white/5"></div>
+                                                    <button
+                                                        onClick={() => setIsManualEntry(true)}
+                                                        className="flex items-center gap-3 text-slate-500 hover:text-blue-500 transition-all font-black uppercase tracking-widest text-xs"
+                                                    >
+                                                        <Maximize2 size={16} />
+                                                        검색 없이 바로 직접 등록하기
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            ) : isManualEntry ? (
+                                <div className="space-y-12">
+                                    <div className="text-center space-y-4">
+                                        <h4 className="text-2xl font-black text-white tracking-tighter">현장 데이터 직접 등록</h4>
+                                        <p className="text-slate-500 font-bold">분석할 건물의 이름과 사진을 등록해 주세요.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-slate-600 uppercase tracking-widest px-2">건물 명칭</label>
+                                                <input
+                                                    type="text"
+                                                    value={manualData.name}
+                                                    onChange={(e) => setManualData({ ...manualData, name: e.target.value })}
+                                                    placeholder="Lotte World Tower..."
+                                                    className="w-full px-8 py-5 bg-white/[0.03] border border-white/10 rounded-2xl text-white outline-none focus:border-blue-600/50 transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-slate-600 uppercase tracking-widest px-2">상세 주소 (선택)</label>
+                                                <input
+                                                    type="text"
+                                                    value={manualData.address}
+                                                    onChange={(e) => setManualData({ ...manualData, address: e.target.value })}
+                                                    placeholder="Seoul, Songpa-gu..."
+                                                    className="w-full px-8 py-5 bg-white/[0.03] border border-white/10 rounded-2xl text-white outline-none focus:border-blue-600/50 transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-slate-600 uppercase tracking-widest px-2">사진 URL 및 업로드</label>
+                                                <input
+                                                    type="text"
+                                                    value={manualData.image}
+                                                    onChange={(e) => setManualData({ ...manualData, image: e.target.value })}
+                                                    placeholder="https://images.unsplash.com/..."
+                                                    className="w-full px-8 py-5 bg-white/[0.03] border border-white/10 rounded-2xl text-white outline-none focus:border-blue-600/50 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="aspect-square rounded-[3rem] bg-white/[0.02] border border-white/5 border-dashed flex flex-col items-center justify-center p-8 text-center group relative overflow-hidden">
+                                            {manualData.image ? (
+                                                <img src={manualData.image} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Preview" />
+                                            ) : (
+                                                <>
+                                                    <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center text-slate-700 mb-6"><Activity size={40} /></div>
+                                                    <p className="text-slate-600 font-bold mb-2">업로드된 이미지가 없습니다</p>
+                                                    <p className="text-slate-800 text-[10px] font-black uppercase tracking-[0.2em]">Image Preview Area</p>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4 pt-8">
+                                        <button
+                                            onClick={() => { setIsManualEntry(false); setManualData({ name: '', address: '', image: '' }); }}
+                                            className="flex-1 py-6 bg-white/5 text-slate-400 font-black rounded-3xl hover:bg-white/10 transition-all"
+                                        >
+                                            취소하고 돌아가기
+                                        </button>
+                                        <button
+                                            disabled={!manualData.name || !manualData.image}
+                                            onClick={() => {
+                                                const manualBuilding: Building = {
+                                                    id: 'manual-' + Date.now(),
+                                                    name: manualData.name,
+                                                    address: manualData.address || '정보 없음',
+                                                    type: '사용자 등록 건물',
+                                                    year: '2024 (당해년도)',
+                                                    image: manualData.image,
+                                                    score: 85,
+                                                    expertAnalysis: `[사용자 등록 데이터 정밀 진단] ${manualData.name}에 대한 AI 이미지 딥러닝 분석 결과, 초기 구조적 결함은 발견되지 않았습니다. 외벽 마감재의 일부 오염 주위로 미세 기공이 관찰되나, 이는 통상적인 노후화 범주에 속합니다. 다만, 사용자 제공 사진의 해상도 한계로 인해 기초 슬래브 및 전단벽 구조에 대한 내부 진단은 추가 현장 점검이 필요할 수 있습니다.`,
+                                                    recommendations: [
+                                                        '고해상도 다각도 현장 사진 추가 등록 권장',
+                                                        '정기적인 크랙 모니터링 수행',
+                                                        '주요 접합부 비파괴 검사 고려'
+                                                    ],
+                                                    markers: [
+                                                        { x: 50, y: 50, label: "사용자 분석 요청 부위 (상태 양호)", type: 'SAFE' as any }
+                                                    ]
+                                                };
+                                                setIsManualEntry(false);
+                                                startAutomaticAnalysis(manualBuilding);
+                                            }}
+                                            className="flex-[2] py-6 bg-blue-600 text-white font-black rounded-3xl hover:bg-blue-500 transition-all disabled:opacity-30 disabled:grayscale shadow-2xl shadow-blue-600/20"
+                                        >
+                                            AI 전문가 정밀 분석 시작
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
