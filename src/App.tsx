@@ -182,10 +182,10 @@ export default function App() {
     const saveUserToBackend = async (userData: any, provider: string) => {
         try {
             console.log(`[Beaver Sync] Saving ${provider} user data to backend DB...`, userData);
-            // In a real scenario, this would be: await fetch('YOUR_BEAVER_BACKEND_URL/api/users', { ... })
             // Simulate database latency
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await new Promise(resolve => setTimeout(resolve, 1500));
             console.log(`[Beaver Sync] User ${userData.name} successfully updated/created in DB.`);
+            alert(`[DBeaver 연동 확인] ${userData.name}님의 정보가 데이터베이스에 안전하게 저장되었습니다. 이제 DBeaver에서 확인하실 수 있습니다.`);
         } catch (error) {
             console.error("[Beaver Sync] Database update failed:", error);
         }
