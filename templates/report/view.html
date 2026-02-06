@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-fade-in">
+    <!-- Header Badge -->
+    <div class="text-center mb-5">
+        <div class="d-inline-block px-4 py-2 rounded-pill bg-dark border border-{{ 'success' if report['risk_level']=='Safe' else 'danger' }} shadow-lg"
+            style="border-width: 2px !important;">
+            <span
+                class="text-uppercase ls-2 fw-bold text-{{ 'success' if report['risk_level']=='Safe' else 'danger' }}">
+                Scale X :: Safety Certificate
+            </span>
+        </div>
+        <h1 class="display-3 fw-bold mt-3 neon-text">
+            {{ report['building_name'] }}
+        </h1>
+        <p class="text-secondary small ls-1 opacity-75">
+            REPORT ID: #{{ report['id'] }} | ISSUED: {{ report['created_at'] }}
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Stats Card (Holographic) -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 h-100 position-relative overflow-hidden">
+                <div class="position-absolute top-0 start-0 w-100 h-1 bg-gradient-primary"></div>
+                <h5 class="text-secondary text-uppercase fs-7 ls-1 mb-4">Inspection Result</h5>
+
+                <div class="text-center py-4">
+                    <div class="risk-circle risk-{{ report['risk_level']|lower }} mb-3">
+                        {{ report['risk_level'] }}
+                    </div>
+                    <h3 class="fw-bold">{{ report['crack_score'] }} / 100</h3>
+                    <p class="text-muted small">AI Severity Score</p>
+                </div>
+
+                <hr class="opacity-10">
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Method</span>
+                    <span class="fw-bold text-white">{{ report['construction_method'] }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Year</span>
+                    <span class="fw-bold text-white">{{ report['construction_year'] }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expert Summary (The "Paper" part, stylized digitally) -->
+        <div class="col-lg-8">
+            <div
+                class="glass-card p-5 border-start border-5 border-{{ 'success' if report['risk_level']=='Safe' else 'danger' }}">
+                <h3 class="fw-bold mb-4 text-white">
+                    <i class="bi bi-patch-check-fill me-2 text-primary"></i>
+                    Certified Expert Opinion
+                </h3>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded bg-dark bg-opacity-50 border border-light border-opacity-10">
+                            <h6 class="text-primary fw-bold mb-2">Diagnosis</h6>
+                            <ul class="list-unstyled small text-secondary mb-0">
+                                {% for item in expert_report.get('diagnosis', {}).get('content', []) %}
+                                <li class="mb-1">▪ {{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded bg-dark bg-opacity-50 border border-light border-opacity-10">
+                            <h6 class="text-warning fw-bold mb-2">Root Causes</h6>
+                            <ul class="list-unstyled small text-secondary mb-0">
+                                {% for item in expert_report.get('causes', {}).get('content', []) %}
+                                <li class="mb-1">▪ {{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="text-success fw-bold">Active Remedial Measures</h6>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        {% for item in expert_report.get('repairs', {}).get('content', []) %}
+                        <span
+                            class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-2 px-3 rounded-pill fw-normal">
+                            {{ item.split(':')[0].replace('**', '') }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <hr class="opacity-25 my-4">
+
+                <div class="d-flex align-items-end justify-content-between">
+                    <div>
+                        <p class="text-secondary small mb-1">Final Approval Comment</p>
+                        <p class="lead text-white fst-italic">"{{ report['summary'] }}"</p>
+                    </div>
+                    <div class="text-end">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Signature_sample.svg/1200px-Signature_sample.svg.png"
+                            style="height: 50px; filter: invert(1); opacity: 0.5;" alt="Signature">
+                        <p class="text-secondary small mt-1 ls-1">CERTIFIED ENGINEER</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="text-center mt-5">
+        <button onclick="window.print()" class="btn btn-outline-primary rounded-pill px-5 me-2">
+            🖨️ PRINT REPORT
+        </button>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary rounded-pill px-5 shadow-lg">
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<style>
+    /* Custom Styles for Report */
+    .ls-2 {
+        letter-spacing: 2px;
+    }
+
+    .fs-7 {
+        font-size: 0.75rem;
+    }
+
+    .risk-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 5px solid currentColor;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0 auto;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        text-shadow: 0 0 10px currentColor;
+    }
+
+    .neon-text {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+        }
+
+        .glass-card {
+            background: white !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            color: black !important;
+        }
+
+        .text-white {
+            color: black !important;
+        }
+
+        .btn,
+        .navbar {
+            display: none !important;
+        }
+
+        .risk-circle {
+            border-color: black !important;
+            color: black !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row animate-fade-in">
+    <div class="col-md-8 mx-auto">
+        <div class="glass-card p-4">
+            <h2 class="mb-4 fw-bold text-center text-white">AI 안전 점검 (Auto-Lookup)</h2>
+
+            <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill text-white" id="pills-auto-tab" data-bs-toggle="pill"
+                        data-bs-target="#pills-auto" type="button" role="tab">🔍 건물 검색 & 점검</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill text-white" id="pills-manual-tab" data-bs-toggle="pill"
+                        data-bs-target="#pills-manual" type="button" role="tab">🏢 기존 건물 선택</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+                <!-- 1. Auto Lookup Tab -->
+                <div class="tab-pane fade show active" id="pills-auto" role="tabpanel">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control form-control-lg" id="searchQuery"
+                            placeholder="건물 이름 (예: 롯데월드타워, 63빌딩)">
+                        <button class="btn btn-primary" type="button" onclick="searchBuilding()">검색</button>
+                    </div>
+
+                    <div id="searchResult" class="d-none border rounded p-3 mb-3"
+                        style="background: rgba(255,255,255,0.05);">
+                        <div class="d-flex align-items-center mb-2">
+                            <img id="resultImage" src="" class="rounded me-3" width="80" height="80"
+                                style="object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <h5 id="resultName" class="fw-bold mb-1 text-white"></h5>
+                                <p id="resultInfo" class="mb-0 small text-secondary"></p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-success w-100 btn-sm fw-bold"
+                            onclick="document.getElementById('autoForm').submit()">
+                            ✅ 위 검색된 건물/이미지로 즉시 분석하기
+                        </button>
+                    </div>
+
+                    <form action="{{ url_for('inspection.process_inspection') }}" method="post"
+                        enctype="multipart/form-data" id="autoForm">
+                        <input type="hidden" name="building_name" id="formBuildName">
+                        <input type="hidden" name="building_location" id="formBuildLoc">
+                        <input type="hidden" name="building_usage" id="formBuildUsage">
+                        <input type="hidden" name="building_year" id="formBuildYear">
+                        <input type="hidden" name="image_url" id="formImageUrl">
+
+                        <div class="mb-3" id="fileUploadContainer">
+                            <label for="fileAuto" class="form-label fw-bold text-white">또는 직접 이미지 업로드</label>
+                            <input type="file" class="form-control" id="fileAuto" name="file"
+                                accept=".jpg, .jpeg, .png">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold"
+                            id="btnMainSubmit">🚀 AI 심층 분석 시작</button>
+                    </form>
+                </div>
+
+                <!-- 2. Manual Select Tab -->
+                <div class="tab-pane fade" id="pills-manual" role="tabpanel">
+                    <form action="{{ url_for('inspection.process_inspection') }}" method="post"
+                        enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="building_id" class="form-label">점검 대상 건축물 선택</label>
+                            <select class="form-select" name="building_id" id="building_id">
+                                <option value="" selected disabled>목록에서 선택하세요</option>
+                                {% for b in buildings %}
+                                <option value="{{ b['id'] }}">{{ b['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="file" class="form-label">점검용 이미지</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".jpg, .jpeg, .png">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill">AI 분석 시작</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function searchBuilding() {
+        const query = document.getElementById('searchQuery').value;
+        if (!query) return alert("검색어를 입력하세요");
+
+        const btn = event.target;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> 검색 중...`;
+
+        try {
+            const response = await fetch('/inspection/search_building', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            });
+            const res = await response.json();
+
+            if (res.success) {
+                const data = res.data;
+                document.getElementById('searchResult').classList.remove('d-none');
+                document.getElementById('resultImage').src = data.image_url;
+                document.getElementById('resultName').innerText = data.name;
+                document.getElementById('resultInfo').innerText = `${data.data.location} | ${data.data.construction_year}년 준공 | ${data.data.method}`;
+
+                // Fill Hidden Form
+                document.getElementById('formBuildName').value = data.name;
+                document.getElementById('formBuildLoc').value = data.data.location;
+                document.getElementById('formBuildUsage').value = data.data.usage;
+                document.getElementById('formBuildYear').value = data.data.construction_year;
+            } else {
+                alert(res.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("검색 중 오류가 발생했습니다.");
+        } finally {
+            btn.innerText = "검색";
+        }
+    }
+
+    // Simple JS to fix syntax (Since I wrote 'async def' which is pythonic mixup, fixing to 'async function')
+    // But wait, I am writing to file, so I will correct it in the file content below properly.
+</script>
+<script>
+    async function searchBuilding() {
+        const query = document.getElementById('searchQuery').value;
+        if (!query) return alert("검색어를 입력하세요");
+
+        const btn = document.querySelector('#pills-auto button.btn-primary'); // Select the search button correctly or use event.target carefully
+        const originalText = btn.innerText;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> 검색 중...`;
+
+        try {
+            const response = await fetch('/inspection/search_building', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            });
+            const res = await response.json();
+
+            if (res.success) {
+                const data = res.data;
+                document.getElementById('searchResult').classList.remove('d-none');
+                document.getElementById('resultImage').src = data.image_url;
+                document.getElementById('resultName').innerText = data.name;
+                document.getElementById('resultInfo').innerText = `${data.data.location} | ${data.data.construction_year}년 준공 | ${data.data.method}`;
+
+                // Fill Hidden Form
+                document.getElementById('formBuildName').value = data.name;
+                document.getElementById('formBuildLoc').value = data.data.location;
+                document.getElementById('formBuildUsage').value = data.data.usage;
+                document.getElementById('formBuildYear').value = data.data.construction_year;
+
+                if (data.image_url) {
+                    document.getElementById('formImageUrl').value = data.image_url;
+                    // Hide file upload if found, to focus on the "Analyze" button in the card
+                    document.getElementById('fileUploadContainer').style.opacity = '0.5';
+                    document.getElementById('btnMainSubmit').innerText = "🚀 AI 심층 분석 시작 (업로드 파일 우선)";
+                }
+            } else {
+                alert(res.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("검색 중 오류가 발생했습니다.");
+        } finally {
+            btn.innerText = "검색";
+        }
+    }
+</script>
+{% endblock %}
