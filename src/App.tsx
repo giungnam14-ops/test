@@ -225,11 +225,24 @@ export default function App() {
 
         // Simulate AI Intelligence Search / List Generation
         setTimeout(() => {
-            const results = buildings.filter(b =>
-                b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                b.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                searchQuery.toLowerCase().includes(b.name.split(' ')[0].toLowerCase())
-            );
+            const query = searchQuery.toLowerCase().replace(/\s+/g, '');
+            const results = buildings.filter(b => {
+                const name = b.name.toLowerCase().replace(/\s+/g, '');
+                const address = b.address.toLowerCase().replace(/\s+/g, '');
+
+                // 1. Full/Partial match after removing spaces
+                if (name.includes(query) || address.includes(query) || query.includes(name)) return true;
+
+                // 2. Keyword split match
+                const queryParts = searchQuery.toLowerCase().split(/\s+/).filter(p => p.length > 0);
+                if (queryParts.some(part => name.includes(part) || address.includes(part))) return true;
+
+                // 3. Reverse match: check if building name keywords are in query
+                const nameParts = b.name.toLowerCase().split(/\s+/).filter(p => p.length > 1);
+                if (nameParts.some(part => query.includes(part))) return true;
+
+                return false;
+            });
             setSearchResults(results);
             setIsSearchingList(false);
             setSearchPerformed(true);
@@ -718,9 +731,10 @@ export default function App() {
                                         />
                                         <button
                                             onClick={handleSearch}
-                                            className="p-6 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/30"
+                                            className="px-10 py-5 bg-blue-600 text-white rounded-[2rem] hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-3 group whitespace-nowrap"
                                         >
-                                            <ArrowRight size={32} />
+                                            <span className="font-black text-xl tracking-widest uppercase">Search</span>
+                                            <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
                                         </button>
                                     </div>
 
@@ -732,33 +746,39 @@ export default function App() {
                                             </div>
                                         ) : searchPerformed ? (
                                             searchResults.length > 0 ? (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    {searchResults.map((b, idx) => (
-                                                        <motion.button
-                                                            key={b.id}
-                                                            initial={{ opacity: 0, y: 20 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: idx * 0.1 }}
-                                                            onClick={() => startAutomaticAnalysis(b)}
-                                                            className="text-left group bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden hover:border-blue-600/50 hover:bg-blue-600/5 transition-all"
-                                                        >
-                                                            <div className="aspect-[21/9] w-full overflow-hidden relative">
-                                                                <img src={b.image} className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt={b.name} />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                                                <div className="absolute bottom-4 left-6 flex items-center gap-3">
-                                                                    <div className={`w-2 h-2 rounded-full ${b.score > 90 ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></div>
-                                                                    <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{b.type}</span>
+                                                <div className="space-y-8">
+                                                    <div className="flex items-center justify-between px-4">
+                                                        <p className="text-blue-500 font-black uppercase tracking-[0.3em] text-xs">AI 추천 검색 결과 ({searchResults.length})</p>
+                                                        <p className="text-slate-600 font-bold text-xs">분석할 건물을 클릭하십시오</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        {searchResults.map((b, idx) => (
+                                                            <motion.button
+                                                                key={b.id}
+                                                                initial={{ opacity: 0, y: 20 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: idx * 0.1 }}
+                                                                onClick={() => startAutomaticAnalysis(b)}
+                                                                className="text-left group bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden hover:border-blue-600/50 hover:bg-blue-600/5 transition-all"
+                                                            >
+                                                                <div className="aspect-[21/9] w-full overflow-hidden relative">
+                                                                    <img src={b.image} className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt={b.name} />
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                                                    <div className="absolute bottom-4 left-6 flex items-center gap-3">
+                                                                        <div className={`w-2 h-2 rounded-full ${b.score > 90 ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></div>
+                                                                        <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{b.type}</span>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="p-8 space-y-2">
-                                                                <h4 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors leading-none">{b.name}</h4>
-                                                                <p className="text-slate-500 font-bold text-sm truncate flex items-center gap-2">
-                                                                    <MapPin size={14} />
-                                                                    {b.address}
-                                                                </p>
-                                                            </div>
-                                                        </motion.button>
-                                                    ))}
+                                                                <div className="p-8 space-y-2">
+                                                                    <h4 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors leading-none">{b.name}</h4>
+                                                                    <p className="text-slate-500 font-bold text-sm truncate flex items-center gap-2">
+                                                                        <MapPin size={14} />
+                                                                        {b.address}
+                                                                    </p>
+                                                                </div>
+                                                            </motion.button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <div className="py-32 text-center space-y-8">
@@ -895,13 +915,13 @@ export default function App() {
                             ) : (
                                 <div className="space-y-12 py-10">
                                     <div className="aspect-[21/9] w-full rounded-[4rem] overflow-hidden border border-white/10 relative shadow-[0_50px_150px_rgba(0,0,0,0.8)]">
-                                        <img src={selectedBuilding.image} className="w-full h-full object-cover scale-110" alt="Building Preview" />
+                                        <img src={selectedBuilding?.image} className="w-full h-full object-cover scale-110" alt="Building Preview" />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent flex flex-col justify-end p-16">
                                             <div className="flex items-center gap-6 mb-4">
                                                 <span className="px-6 py-2 bg-blue-600 rounded-xl text-xs font-black tracking-[0.3em] uppercase text-white shadow-2xl">Digital Twin Active</span>
-                                                <span className="text-white/40 text-sm font-black uppercase tracking-widest px-6 border-l border-white/10">Established in {selectedBuilding.year}</span>
+                                                <span className="text-white/40 text-sm font-black uppercase tracking-widest px-6 border-l border-white/10">Established in {selectedBuilding?.year}</span>
                                             </div>
-                                            <h4 className="text-8xl font-black text-white tracking-tighter leading-none">{selectedBuilding.name}</h4>
+                                            <h4 className="text-8xl font-black text-white tracking-tighter leading-none">{selectedBuilding?.name}</h4>
                                         </div>
 
                                         {isAnalyzing && (
@@ -945,7 +965,7 @@ export default function App() {
                                         <div className="w-px h-16 bg-white/5 hidden md:block"></div>
                                         <div className="space-y-4 text-center md:text-right">
                                             <div className="text-slate-600 text-xs font-black uppercase tracking-[0.4em]">Target Location</div>
-                                            <div className="text-slate-300 font-black text-2xl tracking-tighter">{selectedBuilding.address}</div>
+                                            <div className="text-slate-300 font-black text-2xl tracking-tighter">{selectedBuilding?.address}</div>
                                         </div>
                                     </div>
                                 </div>
