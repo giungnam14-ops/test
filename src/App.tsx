@@ -181,14 +181,42 @@ export default function App() {
     // Unified Backend Storage Logic (DBeaver Integration)
     const saveUserToBackend = async (userData: any, provider: string) => {
         try {
-            console.log(`[Beaver Sync] Saving ${provider} user data to backend DB...`, userData);
-            // Simulate database latency
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            console.log(`[Beaver Sync] User ${userData.name} successfully updated/created in DB.`);
-            alert(`[DBeaver 연동 확인] ${userData.name}님의 정보가 데이터베이스에 안전하게 저장되었습니다. 이제 DBeaver에서 확인하실 수 있습니다.`);
+            console.log(`[Beaver Sync] Sending ${provider} user data to backend server...`, userData);
+
+            // 실제 로컬 서버(http://localhost:3000)로 데이터 전송 시도
+            const response = await fetch('http://localhost:3000/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log("[Beaver Sync] Success:", result);
+                alert(`[DBeaver 실시간 연동 성공]\n${userData.name}님의 정보가 SQLite DB에 저장되었습니다.\n\n지금 DBeaver에서 확인해 보세요!`);
+            } else {
+                // 서버가 실행 중이지 않을 때를 대비한 시뮬레이션 유지
+                console.warn("[Beaver Sync] Server not reachable. Check if 'node server.js' is running.");
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                alert(`[시뮬레이션 모드]\n백엔드 서버(node server.js)가 실행되지 않아 데이터가 로컬에만 저장되었습니다.\n실제 DBeaver 연동을 위해 터미널에서 서버를 실행해 주세요.`);
+            }
         } catch (error) {
-            console.error("[Beaver Sync] Database update failed:", error);
+            console.error("[Beaver Sync] Connection failed:", error);
+            alert(`[DBeaver 연동 알림]\n로컬 백엔드 서버(http://localhost:3000)가 응답하지 않습니다.\n데이터를 기록하려면 'node server.js'를 실행해야 합니다.`);
         }
+    };
+
+    // Quick Mock Login for Testing (Bypasses OAuth errors)
+    const loginWithTestMode = () => {
+        const testUser = {
+            name: "테스트 분석 전문가",
+            email: "test_expert@safety.ai",
+            picture: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200",
+            provider: "test_mode"
+        };
+        setUser(testUser);
+        setIsLoggedIn(true);
+        saveUserToBackend(testUser, "test_mode");
     };
 
     // Kakao Login Handler
@@ -401,14 +429,20 @@ export default function App() {
 
                         <div className="relative flex items-center gap-6 text-slate-700 uppercase text-[11px] font-black tracking-[0.3em]">
                             <div className="flex-1 h-px bg-white/5"></div>
-                            Secure Access
+                            Secure Access or Test Mode
                             <div className="flex-1 h-px bg-white/5"></div>
                         </div>
 
-                        <button onClick={() => setIsLoggedIn(true)} className="group w-full py-6 bg-white/5 border border-white/10 text-slate-400 font-black rounded-3xl hover:text-white hover:bg-white/10 transition-all flex items-center justify-center gap-4 shadow-2xl">
-                            게스트 전문가로 로그인
-                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        <div className="space-y-3">
+                            <button onClick={loginWithTestMode} className="group w-full py-6 bg-blue-600/20 border border-blue-600/30 text-blue-400 font-black rounded-3xl hover:bg-blue-600/30 transition-all flex flex-col items-center gap-1 shadow-2xl">
+                                <span className="text-sm">실습용 테스트 로그인</span>
+                                <span className="text-[9px] opacity-60 uppercase tracking-widest">(OAuth 설정 없이 DBeaver 연동 테스트)</span>
+                            </button>
+
+                            <button onClick={() => setIsLoggedIn(true)} className="group w-full py-4 text-slate-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest">
+                                게스트 모드로 둘러보기
+                            </button>
+                        </div>
                     </motion.div>
                 </div>
             </div>
