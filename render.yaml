@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: safety-inspection-app
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        value: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+      - key: DATABASE_PATH
+        value: "data/inspection.db"
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
