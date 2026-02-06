@@ -6,7 +6,7 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
-const port = 3000;
+const port = 4000;
 
 app.use(cors());
 app.use(express.json());

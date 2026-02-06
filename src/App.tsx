@@ -183,8 +183,8 @@ export default function App() {
         try {
             console.log(`[Beaver Sync] Sending ${provider} user data to backend server...`, userData);
 
-            // 실제 로컬 서버(http://localhost:3000)로 데이터 전송 시도
-            const response = await fetch('http://localhost:3000/api/users', {
+            // 실제 로컬 서버(http://localhost:4000)로 데이터 전송 시도
+            const response = await fetch('http://localhost:4000/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -202,7 +202,7 @@ export default function App() {
             }
         } catch (error) {
             console.error("[Beaver Sync] Connection failed:", error);
-            alert(`[DBeaver 연동 알림]\n로컬 백엔드 서버(http://localhost:3000)가 응답하지 않습니다.\n데이터를 기록하려면 'node server.js'를 실행해야 합니다.`);
+            alert(`[DBeaver 연동 알림]\n로컬 백엔드 서버(http://localhost:4000)가 응답하지 않습니다.\n데이터를 기록하려면 'node server.js'를 실행해야 합니다.`);
         }
     };
 
