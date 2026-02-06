@@ -194,11 +194,16 @@ export default function App() {
     // Kakao Login Handler
     const loginWithKakao = () => {
         if (!window.Kakao) {
-            alert("카카오 SDK가 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+            alert("카카오 SDK가 아직 로드되지 않았습니다. 몇 초 후 다시 시도해 주세요.");
             return;
         }
-        if (!window.Kakao.isInitialized()) {
-            window.Kakao.init('8080f339665bc83109a1501c379f6655');
+
+        try {
+            if (!window.Kakao.isInitialized()) {
+                window.Kakao.init('8080f339665bc83109a1501c379f6655');
+            }
+        } catch (e) {
+            console.error("Kakao re-init error:", e);
         }
 
         console.log("[Auth] Attempting Kakao Login...");
@@ -220,13 +225,18 @@ export default function App() {
                     },
                     fail: (error: any) => {
                         console.error("[Auth] Kakao API request failed:", error);
-                        alert("카카오 사용자 정보를 가져오는데 실패했습니다.");
+                        alert("카카오 로그인은 성공했으나 정보를 가져오지 못했습니다. 앱 설정을 확인해 주세요.");
                     }
                 });
             },
             fail: (err: any) => {
                 console.error("[Auth] Kakao Login failed:", err);
-                alert("카카오 로그인 도중 오류가 발생했습니다. (팝업 차단 여부를 확인해 주세요)");
+                // Detail error handling for domain mismatch
+                if (err.error === 'misconfigured' || err.error_description?.includes('mismatch')) {
+                    alert("카카오 앱의 '내 패치' > '플랫폼'에 현재 도메인이 등록되어 있지 않습니다. Kakao Developers 설정을 확인해 주세요.");
+                } else {
+                    alert("카카오 로그인 도중 오류가 발생했습니다. (팝업 차단 여부 또는 도메인 등록을 확인해 주세요)");
+                }
             }
         });
     };
@@ -266,13 +276,23 @@ export default function App() {
 
     // Initialize Kakao & Google
     useEffect(() => {
-        // Kakao Init
-        if (window.Kakao && !window.Kakao.isInitialized()) {
-            window.Kakao.init('8080f339665bc83109a1501c379f6655');
-            console.log("[Auth] Kakao initialized.");
-        }
+        // Kakao Init with Polling
+        const checkKakaoInterval = setInterval(() => {
+            if (window.Kakao) {
+                if (!window.Kakao.isInitialized()) {
+                    try {
+                        // NOTE: Check if the Javascript Key is valid and Domain is registered in Kakao Developers
+                        window.Kakao.init('8080f339665bc83109a1501c379f6655');
+                        console.log("[Auth] Kakao initialized.");
+                    } catch (e) {
+                        console.error("[Auth] Kakao init failed:", e);
+                    }
+                }
+                clearInterval(checkKakaoInterval);
+            }
+        }, 500);
 
-        // Google Init with Polling (incase async script loads lite)
+        // Google Init with Polling
         const checkGoogleInterval = setInterval(() => {
             if (window.google) {
                 renderGoogleButton();
@@ -280,7 +300,10 @@ export default function App() {
             }
         }, 500);
 
-        return () => clearInterval(checkGoogleInterval);
+        return () => {
+            clearInterval(checkKakaoInterval);
+            clearInterval(checkGoogleInterval);
+        };
     }, [isLoggedIn]);
 
     const handleSearch = () => {
