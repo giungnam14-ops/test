@@ -27,7 +27,7 @@ interface Marker {
     x: number;
     y: number;
     label: string;
-    type: 'CRACK' | 'LEAK' | 'CORROSION';
+    type: 'SAFE' | 'CRACK' | 'LEAK' | 'CORROSION';
 }
 
 interface Building {
@@ -73,6 +73,9 @@ export default function App() {
     const [hoveredMarker, setHoveredMarker] = useState<Marker | null>(null)
     const [isManualEntry, setIsManualEntry] = useState(false)
     const [manualData, setManualData] = useState({ name: '', address: '', image: '' })
+    const [isSearchingList, setIsSearchingList] = useState(false)
+    const [searchPerformed, setSearchPerformed] = useState(false)
+    const [searchResults, setSearchResults] = useState<Building[]>([])
 
     // Mock Data: Professional Buildings for Search
     const [buildings] = useState<Building[]>([
@@ -148,7 +151,7 @@ export default function App() {
                 '지진 알림 시스템과 연동된 엘리베이터 비상 정지 로직 테스트'
             ],
             markers: [
-                { x: 75, y: 15, label: "최상층부 댐퍼 설치 구역 구조 건전성 양호", type: 'SAFE' as any },
+                { x: 75, y: 15, label: "최상층부 댐퍼 설치 구역 구조 건전성 양호", type: 'SAFE' },
                 { x: 40, y: 55, label: "트랜스퍼 거더 구간 상부 변위 계측 포인트", type: 'CRACK' }
             ]
         },
@@ -174,11 +177,6 @@ export default function App() {
     ])
 
     const [inspections, setInspections] = useState<Inspection[]>([])
-
-    const filteredBuildings = buildings.filter(b =>
-        b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.address.toLowerCase().includes(searchQuery.toLowerCase())
-    )
 
     // Google Login Initialization
     useEffect(() => {
@@ -218,6 +216,26 @@ export default function App() {
         }
     }, [isLoggedIn]);
 
+    const handleSearch = () => {
+        if (!searchQuery.trim()) return;
+
+        setIsSearchingList(true);
+        setSearchPerformed(false);
+        setSearchResults([]);
+
+        // Simulate AI Intelligence Search / List Generation
+        setTimeout(() => {
+            const results = buildings.filter(b =>
+                b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                b.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                searchQuery.toLowerCase().includes(b.name.split(' ')[0].toLowerCase())
+            );
+            setSearchResults(results);
+            setIsSearchingList(false);
+            setSearchPerformed(true);
+        }, 1200);
+    }
+
     const startAutomaticAnalysis = (building: Building) => {
         setIsAnalyzing(true)
         setSelectedBuilding(building)
@@ -242,6 +260,8 @@ export default function App() {
             setIsSearchOpen(false)
             setSelectedBuilding(null)
             setSearchQuery('')
+            setSearchResults([])
+            setSearchPerformed(false)
             setActiveTab('report-detail')
         }, 4500)
     }
@@ -492,13 +512,13 @@ export default function App() {
                                                     <motion.div
                                                         animate={{ scale: [1, 1.3, 1] }}
                                                         transition={{ duration: 2, repeat: Infinity }}
-                                                        className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center cursor-pointer shadow-2xl relative z-10 ${marker.type === 'SAFE' as any ? 'bg-green-600' : 'bg-red-600'}`}
+                                                        className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center cursor-pointer shadow-2xl relative z-10 ${marker.type === 'SAFE' ? 'bg-green-600' : 'bg-red-600'}`}
                                                     >
-                                                        {marker.type === 'SAFE' as any ? <ShieldCheck size={20} className="text-white" /> : <AlertTriangle size={20} className="text-white" />}
+                                                        {marker.type === 'SAFE' ? <ShieldCheck size={20} className="text-white" /> : <AlertTriangle size={20} className="text-white" />}
                                                     </motion.div>
 
                                                     {/* Ripple Animation */}
-                                                    <div className={`absolute top-0 left-0 w-10 h-10 rounded-full animate-ping opacity-50 ${marker.type === 'SAFE' as any ? 'bg-green-600' : 'bg-red-600'}`}></div>
+                                                    <div className={`absolute top-0 left-0 w-10 h-10 rounded-full animate-ping opacity-50 ${marker.type === 'SAFE' ? 'bg-green-600' : 'bg-red-600'}`}></div>
 
                                                     {/* Hover Tooltip */}
                                                     <AnimatePresence>
@@ -668,107 +688,114 @@ export default function App() {
             <AnimatePresence>
                 {isSearchOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/98 backdrop-blur-3xl">
-                        <div className="w-full max-w-4xl bg-[#0a0c10] border border-white/10 rounded-[5rem] p-16 space-y-12 relative shadow-[0_0_200px_rgba(37,99,235,0.2)]">
-                            <button onClick={() => { setIsSearchOpen(false); setSelectedBuilding(null); setIsAnalyzing(false); }} className="absolute top-12 right-12 p-5 text-slate-600 hover:text-white transition-all bg-white/5 rounded-[2rem] hover:rotate-90"><X size={32} /></button>
+                        <div className="w-full max-w-5xl bg-[#0a0c10] border border-white/10 rounded-[5rem] p-16 space-y-12 relative shadow-[0_0_200px_rgba(37,99,235,0.2)]">
+                            <button onClick={() => { setIsSearchOpen(false); setSelectedBuilding(null); setIsAnalyzing(false); setSearchPerformed(false); setSearchResults([]); }} className="absolute top-12 right-12 p-5 text-slate-600 hover:text-white transition-all bg-white/5 rounded-[2rem] hover:rotate-90"><X size={32} /></button>
 
                             <div className="text-center space-y-6">
-                                <div className="inline-flex px-4 py-2 bg-blue-600/10 text-blue-500 text-[10px] font-black uppercase tracking-[0.4em] rounded-lg border border-blue-600/20">AI Search Engine v2</div>
-                                <h3 className="text-5xl font-black tracking-tighter text-white">공공 데이터 기반 건물 서치</h3>
+                                <div className="inline-flex px-4 py-2 bg-blue-600/10 text-blue-500 text-[10px] font-black uppercase tracking-[0.4em] rounded-lg border border-blue-600/20">AI Search Engine v3</div>
+                                <h3 className="text-5xl font-black tracking-tighter text-white">건축물 데이터 통합 검색</h3>
                                 <p className="text-slate-500 font-bold text-xl tracking-tight leading-relaxed max-w-3xl mx-auto">
-                                    진단을 원하는 건축물의 명칭 또는 도로명 주소를 입력하세요. <br />
-                                    <span className="text-slate-700 text-sm italic">(예: 테헤란로, 송도 타워, 아크로리버 등)</span>
+                                    분석 대상을 입력하고 검색 버튼을 클릭하여 관련 건물 리스트를 확인하십시오.
                                 </p>
                             </div>
 
                             {!selectedBuilding ? (
                                 <div className="space-y-12">
-                                    <div className="relative group">
-                                        <div className="absolute left-10 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
-                                            {isAnalyzing ? <Loader2 size={32} className="animate-spin" /> : <Search size={32} />}
+                                    <div className="relative group flex items-center gap-4 bg-white/[0.03] border-2 border-white/5 rounded-[3.5rem] p-4 pr-6 focus-within:border-blue-600/50 transition-all">
+                                        <div className="pl-6 text-slate-500">
+                                            {isSearchingList ? <Loader2 size={32} className="animate-spin text-blue-500" /> : <Search size={32} />}
                                         </div>
                                         <input
                                             type="text"
-                                            placeholder="점검 대상 건물 데이터 쿼리..."
+                                            placeholder="건물 이름 또는 주소 입력 (예: 롯데, 테헤란로...)"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && filteredBuildings.length > 0) {
-                                                    startAutomaticAnalysis(filteredBuildings[0]);
-                                                }
+                                                if (e.key === 'Enter') handleSearch();
                                             }}
-                                            className="w-full pl-28 pr-12 py-10 bg-white/[0.03] border-2 border-white/5 rounded-[3rem] text-3xl font-black text-white outline-none focus:border-blue-600/50 focus:bg-white/[0.05] transition-all placeholder:text-slate-800"
+                                            className="flex-1 py-6 bg-transparent text-3xl font-black text-white outline-none placeholder:text-slate-800"
                                             autoFocus
                                         />
+                                        <button
+                                            onClick={handleSearch}
+                                            className="p-6 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/30"
+                                        >
+                                            <ArrowRight size={32} />
+                                        </button>
                                     </div>
 
-                                    <div className="max-h-[500px] overflow-y-auto space-y-4 pr-6 custom-scrollbar scroll-smooth">
-                                        {searchQuery.length > 0 ? (
-                                            filteredBuildings.length > 0 ? filteredBuildings.map((b, idx) => (
-                                                <motion.button
-                                                    key={b.id}
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: idx * 0.05 }}
-                                                    onClick={() => startAutomaticAnalysis(b)}
-                                                    className="w-full p-10 rounded-[3.5rem] bg-white/[0.01] border border-white/5 hover:border-blue-600/50 hover:bg-blue-600/5 flex items-center gap-10 transition-all group relative overflow-hidden"
-                                                >
-                                                    <div className="w-24 h-24 rounded-[2rem] bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-blue-500 group-hover:bg-blue-600/10 transition-all shrink-0">
-                                                        <Building2 size={48} />
-                                                    </div>
-                                                    <div className="text-left flex-1 space-y-2">
-                                                        <div className="flex items-center gap-4">
-                                                            <p className="font-black text-white text-3xl tracking-tighter group-hover:text-blue-400 transition-colors leading-none">{b.name}</p>
-                                                            <span className="px-3 py-1 bg-white/5 rounded-lg text-[9px] font-black text-slate-600 uppercase tracking-widest">{b.type}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-3 text-slate-500 font-bold text-base mt-2">
-                                                            <MapPin size={18} className="text-slate-700" />
-                                                            {b.address}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col items-center gap-2 pr-4">
-                                                        <div className={`w-3 h-3 rounded-full animate-pulse ${b.score > 90 ? 'bg-green-500' : 'bg-amber-500'}`}></div>
-                                                        <ArrowRight size={32} className="text-slate-800 group-hover:text-blue-600 group-hover:translate-x-3 transition-all" />
-                                                    </div>
-
-                                                    {/* Selection Hint */}
-                                                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-600/10 px-3 py-1 rounded-md">Quick Diagnostic Active</span>
-                                                    </div>
-                                                </motion.button>
-                                            )) : (
+                                    <div className="min-h-[400px] max-h-[600px] overflow-y-auto space-y-6 pr-6 custom-scrollbar scroll-smooth">
+                                        {isSearchingList ? (
+                                            <div className="py-32 text-center space-y-8">
+                                                <Loader2 size={64} className="animate-spin text-blue-500 mx-auto" />
+                                                <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-sm animate-pulse">AI 데이터베이스에서 관련 건축물 탐색 중...</p>
+                                            </div>
+                                        ) : searchPerformed ? (
+                                            searchResults.length > 0 ? (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {searchResults.map((b, idx) => (
+                                                        <motion.button
+                                                            key={b.id}
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: idx * 0.1 }}
+                                                            onClick={() => startAutomaticAnalysis(b)}
+                                                            className="text-left group bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden hover:border-blue-600/50 hover:bg-blue-600/5 transition-all"
+                                                        >
+                                                            <div className="aspect-[21/9] w-full overflow-hidden relative">
+                                                                <img src={b.image} className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt={b.name} />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                                                <div className="absolute bottom-4 left-6 flex items-center gap-3">
+                                                                    <div className={`w-2 h-2 rounded-full ${b.score > 90 ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></div>
+                                                                    <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{b.type}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-8 space-y-2">
+                                                                <h4 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors leading-none">{b.name}</h4>
+                                                                <p className="text-slate-500 font-bold text-sm truncate flex items-center gap-2">
+                                                                    <MapPin size={14} />
+                                                                    {b.address}
+                                                                </p>
+                                                            </div>
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            ) : (
                                                 <div className="py-32 text-center space-y-8">
-                                                    <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mx-auto text-slate-700 animate-pulse"><Search size={48} /></div>
+                                                    <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mx-auto text-slate-700"><X size={48} /></div>
                                                     <div className="space-y-4 text-slate-700">
-                                                        <p className="font-black uppercase tracking-[0.4em] text-sm">일치하는 건물 데이터가 없습니다</p>
-                                                        <p className="font-bold text-base">직접 사진을 등록하여 정밀 진단을 수행하시겠습니까?</p>
+                                                        <p className="font-black uppercase tracking-[0.4em] text-sm text-red-500/50">검색 결과가 없습니다</p>
+                                                        <p className="font-bold text-base">입력하신 '{searchQuery}'와 일치하는 데이터가 데이터베이스에 존재하지 않습니다.</p>
                                                     </div>
                                                     <button
-                                                        onClick={() => {
-                                                            setManualData({ ...manualData, name: searchQuery });
-                                                            setIsManualEntry(true);
-                                                        }}
-                                                        className="px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20"
+                                                        onClick={() => setIsManualEntry(true)}
+                                                        className="px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all"
                                                     >
-                                                        현장 직접 등록 및 분석 시작
+                                                        현장 직접 등록 및 분석 수행
                                                     </button>
                                                 </div>
                                             )
                                         ) : (
-                                            <div className="py-24 text-center space-y-8">
-                                                <p className="text-slate-700 font-black uppercase tracking-[0.5em] text-xs">Search initialized. Waiting for Query...</p>
-                                                <div className="flex justify-center gap-4 flex-wrap max-w-2xl mx-auto">
+                                            <div className="py-24 text-center space-y-10">
+                                                <div className="flex justify-center gap-6 flex-wrap max-w-3xl mx-auto">
                                                     {['롯데월드타워', '테헤란로', '아크로리버', '트리마제', '송도 타워'].map(suggest => (
-                                                        <button key={suggest} onClick={() => setSearchQuery(suggest)} className="px-6 py-3 rounded-full bg-white/5 border border-white/5 text-slate-500 text-sm font-bold hover:bg-white/10 hover:text-white transition-all">#{suggest}</button>
+                                                        <button
+                                                            key={suggest}
+                                                            onClick={() => { setSearchQuery(suggest); handleSearch(); }}
+                                                            className="group relative px-8 py-4 rounded-3xl bg-white/[0.03] border border-white/10 text-slate-500 hover:text-white hover:border-blue-600/50 transition-all overflow-hidden"
+                                                        >
+                                                            <span className="relative z-10 font-black text-sm uppercase tracking-widest">#{suggest}</span>
+                                                            <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/10 transition-colors"></div>
+                                                        </button>
                                                     ))}
                                                 </div>
-                                                <div className="pt-8 flex flex-col items-center gap-4">
-                                                    <div className="w-px h-12 bg-white/5"></div>
+                                                <div className="space-y-4">
+                                                    <p className="text-slate-700 font-black uppercase tracking-[0.6em] text-[10px]">Quick Selection Suggestions</p>
                                                     <button
                                                         onClick={() => setIsManualEntry(true)}
-                                                        className="flex items-center gap-3 text-slate-500 hover:text-blue-500 transition-all font-black uppercase tracking-widest text-xs"
+                                                        className="px-8 py-3 rounded-2xl border border-dashed border-white/10 text-slate-600 hover:text-blue-500 hover:border-blue-500/50 transition-all text-xs font-bold"
                                                     >
-                                                        <Maximize2 size={16} />
-                                                        검색 없이 바로 직접 등록하기
+                                                        또는 직접 사진을 업로드하여 분석하기
                                                     </button>
                                                 </div>
                                             </div>
@@ -778,8 +805,8 @@ export default function App() {
                             ) : isManualEntry ? (
                                 <div className="space-y-12">
                                     <div className="text-center space-y-4">
-                                        <h4 className="text-2xl font-black text-white tracking-tighter">현장 데이터 직접 등록</h4>
-                                        <p className="text-slate-500 font-bold">분석할 건물의 이름과 사진을 등록해 주세요.</p>
+                                        <h4 className="text-2xl font-black text-white tracking-tighter">현장 데이터 수동 등록</h4>
+                                        <p className="text-slate-500 font-bold">건물 명칭과 주소, 그리고 분석할 사진 URL을 입력해 주세요.</p>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -790,7 +817,7 @@ export default function App() {
                                                     type="text"
                                                     value={manualData.name}
                                                     onChange={(e) => setManualData({ ...manualData, name: e.target.value })}
-                                                    placeholder="Lotte World Tower..."
+                                                    placeholder="Building Name..."
                                                     className="w-full px-8 py-5 bg-white/[0.03] border border-white/10 rounded-2xl text-white outline-none focus:border-blue-600/50 transition-all"
                                                 />
                                             </div>
@@ -800,12 +827,12 @@ export default function App() {
                                                     type="text"
                                                     value={manualData.address}
                                                     onChange={(e) => setManualData({ ...manualData, address: e.target.value })}
-                                                    placeholder="Seoul, Songpa-gu..."
+                                                    placeholder="Address..."
                                                     className="w-full px-8 py-5 bg-white/[0.03] border border-white/10 rounded-2xl text-white outline-none focus:border-blue-600/50 transition-all"
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-600 uppercase tracking-widest px-2">사진 URL 및 업로드</label>
+                                                <label className="text-xs font-black text-slate-600 uppercase tracking-widest px-2">이미지 URL (건물 전경)</label>
                                                 <input
                                                     type="text"
                                                     value={manualData.image}
@@ -820,11 +847,10 @@ export default function App() {
                                             {manualData.image ? (
                                                 <img src={manualData.image} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Preview" />
                                             ) : (
-                                                <>
-                                                    <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center text-slate-700 mb-6"><Activity size={40} /></div>
-                                                    <p className="text-slate-600 font-bold mb-2">업로드된 이미지가 없습니다</p>
-                                                    <p className="text-slate-800 text-[10px] font-black uppercase tracking-[0.2em]">Image Preview Area</p>
-                                                </>
+                                                <div className="space-y-4">
+                                                    <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-slate-700 mx-auto"><Maximize2 size={32} /></div>
+                                                    <p className="text-slate-600 font-bold">이미지 미리보기</p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -834,7 +860,7 @@ export default function App() {
                                             onClick={() => { setIsManualEntry(false); setManualData({ name: '', address: '', image: '' }); }}
                                             className="flex-1 py-6 bg-white/5 text-slate-400 font-black rounded-3xl hover:bg-white/10 transition-all"
                                         >
-                                            취소하고 돌아가기
+                                            취소
                                         </button>
                                         <button
                                             disabled={!manualData.name || !manualData.image}
@@ -843,26 +869,26 @@ export default function App() {
                                                     id: 'manual-' + Date.now(),
                                                     name: manualData.name,
                                                     address: manualData.address || '정보 없음',
-                                                    type: '사용자 등록 건물',
-                                                    year: '2024 (당해년도)',
+                                                    type: '신규 분석 대상',
+                                                    year: '2024 (분석일자)',
                                                     image: manualData.image,
-                                                    score: 85,
-                                                    expertAnalysis: `[사용자 등록 데이터 정밀 진단] ${manualData.name}에 대한 AI 이미지 딥러닝 분석 결과, 초기 구조적 결함은 발견되지 않았습니다. 외벽 마감재의 일부 오염 주위로 미세 기공이 관찰되나, 이는 통상적인 노후화 범주에 속합니다. 다만, 사용자 제공 사진의 해상도 한계로 인해 기초 슬래브 및 전단벽 구조에 대한 내부 진단은 추가 현장 점검이 필요할 수 있습니다.`,
+                                                    score: 88,
+                                                    expertAnalysis: `[AI 매뉴얼 분석] ${manualData.name} 건축물에 대한 외부 비전 알고리즘 분석 결과, 가시적인 구조적 결함은 인지되지 않았습니다. 사용자가 제공한 이미지를 기반으로 추정된 구조체의 건전성은 '양호' 등급으로 분류되나, 기초 지반 및 내부 철근 부식 상태 확인을 위해 주기적인 현장 정밀 안전 점검이 동반되어야 합니다.`,
                                                     recommendations: [
-                                                        '고해상도 다각도 현장 사진 추가 등록 권장',
-                                                        '정기적인 크랙 모니터링 수행',
-                                                        '주요 접합부 비파괴 검사 고려'
+                                                        '고해상도 균열 측정 사진 추가 업로드',
+                                                        '분기별 수직/수평 변위 계측 관리',
+                                                        '외벽 방수 상태 정기 검사 수행'
                                                     ],
                                                     markers: [
-                                                        { x: 50, y: 50, label: "사용자 분석 요청 부위 (상태 양호)", type: 'SAFE' as any }
+                                                        { x: 50, y: 50, label: "구조물 건전성 확인 포인트 (양호)", type: 'SAFE' as any }
                                                     ]
                                                 };
                                                 setIsManualEntry(false);
                                                 startAutomaticAnalysis(manualBuilding);
                                             }}
-                                            className="flex-[2] py-6 bg-blue-600 text-white font-black rounded-3xl hover:bg-blue-500 transition-all disabled:opacity-30 disabled:grayscale shadow-2xl shadow-blue-600/20"
+                                            className="flex-[2] py-6 bg-blue-600 text-white font-black rounded-3xl hover:bg-blue-500 transition-all disabled:opacity-30 shadow-2xl shadow-blue-600/20"
                                         >
-                                            AI 전문가 정밀 분석 시작
+                                            분석 시작하기
                                         </button>
                                     </div>
                                 </div>
