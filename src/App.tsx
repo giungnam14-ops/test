@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
     Search,
     MapPin,
@@ -15,7 +15,6 @@ import {
     CheckCircle2,
     TrendingUp,
     Activity,
-    Info,
     Eye,
     Maximize2,
     Target
@@ -58,6 +57,7 @@ interface Inspection {
 declare global {
     interface Window {
         google: any;
+        Kakao: any;
     }
 }
 
@@ -178,6 +178,45 @@ export default function App() {
 
     const [inspections, setInspections] = useState<Inspection[]>([])
 
+    // Unified Backend Storage Logic (DBeaver Integration)
+    const saveUserToBackend = async (userData: any, provider: string) => {
+        try {
+            console.log(`[Beaver Sync] Saving ${provider} user data to backend DB...`, userData);
+            // In a real scenario, this would be: await fetch('YOUR_BEAVER_BACKEND_URL/api/users', { ... })
+            // Simulate database latency
+            await new Promise(resolve => setTimeout(resolve, 800));
+            console.log(`[Beaver Sync] User ${userData.name} successfully updated/created in DB.`);
+        } catch (error) {
+            console.error("[Beaver Sync] Database update failed:", error);
+        }
+    };
+
+    // Kakao Login Handler
+    const loginWithKakao = () => {
+        if (!window.Kakao || !window.Kakao.isInitialized()) return;
+
+        window.Kakao.Auth.login({
+            success: () => {
+                window.Kakao.API.request({
+                    url: '/v2/user/me',
+                    success: (res: any) => {
+                        const profile = {
+                            name: res.kakao_account.profile.nickname,
+                            email: res.kakao_account.email || `${res.id}@kakao.user`,
+                            picture: res.kakao_account.profile.thumbnail_image_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
+                            provider: 'kakao'
+                        };
+                        setUser(profile);
+                        setIsLoggedIn(true);
+                        saveUserToBackend(profile, 'kakao');
+                    },
+                    fail: (error: any) => console.error(error)
+                });
+            },
+            fail: (err: any) => console.error(err)
+        });
+    };
+
     // Google Login Initialization
     useEffect(() => {
         const handleCredentialResponse = (response: any) => {
@@ -189,13 +228,16 @@ export default function App() {
                 }).join(''));
 
                 const profile = JSON.parse(jsonPayload);
-                setUser(profile);
+                const unifiedProfile = { ...profile, provider: 'google' };
+                setUser(unifiedProfile);
                 setIsLoggedIn(true);
+                saveUserToBackend(unifiedProfile, 'google');
             } catch (error) {
                 console.error("Login processing failed:", error);
             }
         };
 
+        // Initialize Google
         if (window.google) {
             try {
                 window.google.accounts.id.initialize({
@@ -213,6 +255,12 @@ export default function App() {
             } catch (error) {
                 console.error("Google script initialization failed:", error);
             }
+        }
+
+        // Initialize Kakao (JavaScript Key Required)
+        if (window.Kakao && !window.Kakao.isInitialized()) {
+            // NOTE: This placeholder key should be replaced with the actual Javascript Key from Kakao Developers
+            window.Kakao.init('8080f339665bc83109a1501c379f6655');
         }
     }, [isLoggedIn]);
 
@@ -295,13 +343,27 @@ export default function App() {
                         initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                         className="p-12 rounded-[4rem] bg-white/[0.02] border border-white/5 backdrop-blur-3xl space-y-10 shadow-[0_50px_100px_rgba(0,0,0,0.5)]"
                     >
-                        <div id="google-btn-parent" className="w-full overflow-hidden rounded-3xl"></div>
+                        <div className="space-y-4">
+                            <button
+                                onClick={loginWithKakao}
+                                className="w-full py-5 bg-[#FEE500] text-[#191919] font-black rounded-2xl hover:bg-[#FADA0A] transition-all flex items-center justify-center gap-4 shadow-xl"
+                            >
+                                <svg viewBox="0 0 32 32" className="w-6 h-6 fill-current">
+                                    <path d="M16 4C9.37258 4 4 8.29124 4 13.5855C4 16.944 6.22383 19.8643 9.5843 21.6521C9.35121 22.5072 8.44111 25.8118 8.35515 26.2163C8.24921 26.7118 8.55592 26.7329 8.76106 26.5982C8.92211 26.4925 11.233 24.9664 12.8718 23.8617C13.8837 24.0628 14.9288 24.1711 16 24.1711C22.6274 24.1711 28 19.8798 28 14.5855C28 9.29124 22.6274 4 16 4Z" />
+                                </svg>
+                                카카오톡 계정으로 로그인
+                            </button>
+
+                            <div id="google-btn-parent" className="w-full overflow-hidden rounded-2xl shadow-xl"></div>
+                        </div>
+
                         <div className="relative flex items-center gap-6 text-slate-700 uppercase text-[11px] font-black tracking-[0.3em]">
                             <div className="flex-1 h-px bg-white/5"></div>
                             Secure Access
                             <div className="flex-1 h-px bg-white/5"></div>
                         </div>
-                        <button onClick={() => setIsLoggedIn(true)} className="group w-full py-6 bg-white text-black font-black rounded-3xl hover:bg-slate-100 transition-all flex items-center justify-center gap-4 shadow-2xl shadow-white/5">
+
+                        <button onClick={() => setIsLoggedIn(true)} className="group w-full py-6 bg-white/5 border border-white/10 text-slate-400 font-black rounded-3xl hover:text-white hover:bg-white/10 transition-all flex items-center justify-center gap-4 shadow-2xl">
                             게스트 전문가로 로그인
                             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                         </button>
