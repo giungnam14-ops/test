@@ -193,10 +193,18 @@ export default function App() {
 
     // Kakao Login Handler
     const loginWithKakao = () => {
-        if (!window.Kakao || !window.Kakao.isInitialized()) return;
+        if (!window.Kakao) {
+            alert("카카오 SDK가 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+            return;
+        }
+        if (!window.Kakao.isInitialized()) {
+            window.Kakao.init('8080f339665bc83109a1501c379f6655');
+        }
 
+        console.log("[Auth] Attempting Kakao Login...");
         window.Kakao.Auth.login({
             success: () => {
+                console.log("[Auth] Kakao Login Success, requesting info...");
                 window.Kakao.API.request({
                     url: '/v2/user/me',
                     success: (res: any) => {
@@ -210,58 +218,69 @@ export default function App() {
                         setIsLoggedIn(true);
                         saveUserToBackend(profile, 'kakao');
                     },
-                    fail: (error: any) => console.error(error)
+                    fail: (error: any) => {
+                        console.error("[Auth] Kakao API request failed:", error);
+                        alert("카카오 사용자 정보를 가져오는데 실패했습니다.");
+                    }
                 });
             },
-            fail: (err: any) => console.error(err)
+            fail: (err: any) => {
+                console.error("[Auth] Kakao Login failed:", err);
+                alert("카카오 로그인 도중 오류가 발생했습니다. (팝업 차단 여부를 확인해 주세요)");
+            }
         });
     };
 
-    // Google Login Initialization
-    useEffect(() => {
-        const handleCredentialResponse = (response: any) => {
-            try {
-                const base64Url = response.credential.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
+    // Unified Google Logic with Retry
+    const renderGoogleButton = () => {
+        if (window.google && !isLoggedIn) {
+            const parent = document.getElementById('google-btn-parent');
+            if (parent) {
+                try {
+                    window.google.accounts.id.initialize({
+                        client_id: "732049580459-f80e0jkf6n2n7m9k8m8r9.apps.googleusercontent.com",
+                        callback: (response: any) => {
+                            const base64Url = response.credential.split('.')[1];
+                            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                            }).join(''));
 
-                const profile = JSON.parse(jsonPayload);
-                const unifiedProfile = { ...profile, provider: 'google' };
-                setUser(unifiedProfile);
-                setIsLoggedIn(true);
-                saveUserToBackend(unifiedProfile, 'google');
-            } catch (error) {
-                console.error("Login processing failed:", error);
-            }
-        };
-
-        // Initialize Google
-        if (window.google) {
-            try {
-                window.google.accounts.id.initialize({
-                    client_id: "732049580459-f80e0jkf6n2n7m9k8m8r9.apps.googleusercontent.com",
-                    callback: handleCredentialResponse
-                });
-
-                const parent = document.getElementById('google-btn-parent');
-                if (parent && !isLoggedIn) {
+                            const profile = JSON.parse(jsonPayload);
+                            const unifiedProfile = { ...profile, provider: 'google' };
+                            setUser(unifiedProfile);
+                            setIsLoggedIn(true);
+                            saveUserToBackend(unifiedProfile, 'google');
+                        }
+                    });
                     window.google.accounts.id.renderButton(
                         parent,
-                        { theme: 'outline', size: 'large', width: '100%' }
+                        { theme: 'outline', size: 'large', width: '100%', shape: 'rectangular' }
                     );
+                } catch (e) {
+                    console.error("Google button render failed:", e);
                 }
-            } catch (error) {
-                console.error("Google script initialization failed:", error);
             }
         }
+    };
 
-        // Initialize Kakao (JavaScript Key Required)
+    // Initialize Kakao & Google
+    useEffect(() => {
+        // Kakao Init
         if (window.Kakao && !window.Kakao.isInitialized()) {
-            // NOTE: This placeholder key should be replaced with the actual Javascript Key from Kakao Developers
             window.Kakao.init('8080f339665bc83109a1501c379f6655');
+            console.log("[Auth] Kakao initialized.");
         }
+
+        // Google Init with Polling (incase async script loads lite)
+        const checkGoogleInterval = setInterval(() => {
+            if (window.google) {
+                renderGoogleButton();
+                clearInterval(checkGoogleInterval);
+            }
+        }, 500);
+
+        return () => clearInterval(checkGoogleInterval);
     }, [isLoggedIn]);
 
     const handleSearch = () => {
@@ -354,7 +373,7 @@ export default function App() {
                                 카카오톡 계정으로 로그인
                             </button>
 
-                            <div id="google-btn-parent" className="w-full overflow-hidden rounded-2xl shadow-xl"></div>
+                            <div id="google-btn-parent" className="min-h-[50px] w-full overflow-hidden rounded-2xl shadow-xl bg-white/5 border border-white/10"></div>
                         </div>
 
                         <div className="relative flex items-center gap-6 text-slate-700 uppercase text-[11px] font-black tracking-[0.3em]">
