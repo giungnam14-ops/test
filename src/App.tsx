@@ -11,7 +11,11 @@ import {
     X,
     Loader2,
     Building2,
-    ArrowRight
+    ArrowRight,
+    CheckCircle2,
+    TrendingUp,
+    Activity,
+    Info
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -23,6 +27,9 @@ interface Building {
     type: string;
     year: string;
     image: string;
+    score: number;
+    details: string;
+    recommendations: string[];
 }
 
 interface Inspection {
@@ -32,6 +39,9 @@ interface Inspection {
     status: 'SAFE' | 'WARNING' | 'DANGER';
     image: string;
     analysis: string;
+    score: number;
+    details: string;
+    recommendations: string[];
 }
 
 declare global {
@@ -47,6 +57,7 @@ export default function App() {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null)
+    const [currentReport, setCurrentReport] = useState<Inspection | null>(null)
     const [isAnalyzing, setIsAnalyzing] = useState(false)
 
     // Mock Data: Buildings for Search
@@ -57,7 +68,10 @@ export default function App() {
             address: '서울시 강남구 테헤란로 152',
             type: '상업용 빌딩',
             year: '2015',
-            image: 'https://images.unsplash.com/photo-1541904845547-0e6962060134?q=80&w=500'
+            image: 'https://images.unsplash.com/photo-1541904845547-0e6962060134?q=80&w=500',
+            score: 94,
+            details: '지반 침하 및 전단벽 구조 상태가 매우 안정적입니다. 내진 설계가 기준치(성능 1.2배) 이상으로 적용되어 있으며, 최근 3년 내 유지보수 이력이 완벽합니다.',
+            recommendations: ['옥상 부근 미세 균열 코팅 보강', '소방 펌프실 밸브 센서 교체 권고', '정기 안전 점검 주기 1년 유지']
         },
         {
             id: 'b2',
@@ -65,7 +79,10 @@ export default function App() {
             address: '서울시 서초구 신반포로15길 19',
             type: '공동주택',
             year: '2016',
-            image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=500'
+            image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=500',
+            score: 88,
+            details: '단지 전반의 구조적 결함은 발견되지 않았으나, 지하 주차장 2층 기둥 인근에서 경미한 결로 흔적이 발견되었습니다. 지반 배수 시스템 점검이 필요합니다.',
+            recommendations: ['지하 주차장 B2층 누수 정밀 내부 탐사', '통합 관제 시스템 소프트웨어 업데이트', '지하 지반 배수 관로 필터 청소']
         },
         {
             id: 'b3',
@@ -73,7 +90,10 @@ export default function App() {
             address: '서울시 성동구 왕십리로 16',
             type: '공동주택',
             year: '2017',
-            image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f776?q=80&w=500'
+            image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f776?q=80&w=500',
+            score: 91,
+            details: '한강 인근 지반 특성에 따른 변위 계측 데이터가 양호합니다. 고층부 외벽 글라스 월 프레임의 체결 상태가 견고하며 고풍압 설계가 효과적으로 작동 중입니다.',
+            recommendations: ['글라스 월 실란트 보완 작업 (일부 구역)', '강풍 대비 계측 센서 주기적 캘리브레이션', '입주민 커뮤니티 시설 안전 관리 강화']
         },
         {
             id: 'b4',
@@ -81,20 +101,14 @@ export default function App() {
             address: '인천시 연수구 송도동 23-4',
             type: '오피스',
             year: '2019',
-            image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=500'
+            image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=500',
+            score: 76,
+            details: '지층부 로비 인근 대리석 마감재 탈락 징후가 보입니다. 해풍에 의한 부식 가능성이 있는 노출 철강 부위의 방청 처리가 시급합니다. 중점 관리가 필요한 등급입니다.',
+            recommendations: ['노출 철구조물 전면 방청 재도장', '로비 외벽 마감재 긴급 체결 상태 전수 조사', '염분 농도 계측 시스템 도입 권고']
         }
     ])
 
-    const [inspections, setInspections] = useState<Inspection[]>([
-        {
-            id: '1',
-            date: '2024-02-06',
-            building: '강남구 테헤란로 123 빌딩',
-            status: 'SAFE',
-            image: 'https://images.unsplash.com/photo-1590069230005-db3263050121?q=80&w=500',
-            analysis: '표면 균열 없음. 구조적 안정성 양호함.'
-        }
-    ])
+    const [inspections, setInspections] = useState<Inspection[]>([])
 
     const filteredBuildings = buildings.filter(b =>
         b.name.includes(searchQuery) || b.address.includes(searchQuery)
@@ -144,20 +158,25 @@ export default function App() {
 
         // Simulate AI Analysis
         setTimeout(() => {
+            const status: 'SAFE' | 'WARNING' | 'DANGER' = building.score > 90 ? 'SAFE' : (building.score > 80 ? 'WARNING' : 'DANGER');
             const newInspection: Inspection = {
                 id: Math.random().toString(36).substr(2, 9),
                 date: new Date().toISOString().split('T')[0],
                 building: building.name,
-                status: Math.random() > 0.8 ? 'DANGER' : (Math.random() > 0.5 ? 'WARNING' : 'SAFE'),
+                status,
                 image: building.image,
-                analysis: `[AI 진단 완료] ${building.name}의 ${building.year}년 완공 데이터를 기반으로 분석한 결과, 외벽 인근 지반 침하 가능성 12% 감지됨. 정기 관찰 필요.`
+                analysis: building.details,
+                score: building.score,
+                details: building.details,
+                recommendations: building.recommendations
             }
             setInspections([newInspection, ...inspections])
+            setCurrentReport(newInspection)
             setIsAnalyzing(false)
             setIsSearchOpen(false)
             setSelectedBuilding(null)
             setSearchQuery('')
-            setActiveTab('history')
+            setActiveTab('report-detail')
         }, 4000)
     }
 
@@ -209,7 +228,7 @@ export default function App() {
                         {[
                             { id: 'dashboard', icon: LayoutDashboard, label: '대시보드' },
                             { id: 'history', icon: History, label: '진단 이력' },
-                            { id: 'reports', icon: FileText, label: '아카이브' },
+                            { id: 'archives', icon: FileText, label: '아카이브' },
                         ].map((item) => (
                             <button
                                 key={item.id}
@@ -275,30 +294,131 @@ export default function App() {
                                 ))}
                             </div>
 
-                            {/* Recent Activity */}
-                            <div className="space-y-8">
-                                <h3 className="text-2xl font-black tracking-tight text-white px-2">최근 정밀 진단 이력</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {inspections.slice(0, 4).map((item) => (
-                                        <div key={item.id} className="group p-8 rounded-[3rem] bg-white/[0.01] border border-white/5 hover:border-blue-600/30 transition-all duration-500">
-                                            <div className="flex gap-8">
-                                                <div className="w-40 h-40 rounded-[2rem] overflow-hidden border border-white/5 shrink-0 relative shadow-2xl">
-                                                    <img src={item.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt="Inspection" />
-                                                    <div className="absolute top-4 left-4">
-                                                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${item.status === 'SAFE' ? 'bg-green-500 text-white' : 'bg-red-600 text-white'}`}>{item.status}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1 space-y-4 py-2">
-                                                    <h4 className="text-xl font-black text-white leading-tight">{item.building}</h4>
-                                                    <p className="text-slate-500 text-sm leading-relaxed line-clamp-3 font-medium">{item.analysis}</p>
-                                                    <div className="flex items-center gap-2 text-slate-600 font-bold text-xs pt-4 uppercase tracking-widest border-t border-white/5 mt-auto">
-                                                        <History size={14} />
-                                                        {item.date}
-                                                    </div>
-                                                </div>
+                            {/* Recent Profile Info */}
+                            <div className="p-12 rounded-[4rem] bg-gradient-to-br from-blue-600/10 to-transparent border border-white/5 relative overflow-hidden group">
+                                <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+                                    <div className="w-48 h-48 rounded-[3rem] bg-white/5 flex items-center justify-center p-8 backdrop-blur-xl border border-white/10 group-hover:scale-105 transition-transform duration-500">
+                                        <Activity size={80} className="text-blue-500" />
+                                    </div>
+                                    <div className="flex-1 space-y-6 text-center md:text-left">
+                                        <h3 className="text-4xl font-black text-white tracking-tight">지능형 안전 진단 알고리즘 <span className="text-blue-500">v2.4</span></h3>
+                                        <p className="text-slate-400 text-lg font-medium leading-relaxed max-w-2xl">
+                                            SafeAI Pro는 수천 건의 구조적 결함 데이터를 학습하여 건축물의 외관뿐만 아니라 연식, 용도에 따른 잠재적 위험 요소를 99.8%의 정확도로 예측합니다.
+                                        </p>
+                                        <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                            {['위성 스캔', '구조 변위 해석', '열화상 시뮬레이션'].map(tag => (
+                                                <span key={tag} className="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-slate-300 uppercase tracking-widest">{tag}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'report-detail' && currentReport && (
+                        <motion.div key="report-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-6xl mx-auto space-y-12">
+                            <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors font-bold group mb-4">
+                                <ArrowRight size={20} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+                                대시보드로 돌아가기
+                            </button>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                                {/* Left: Info Card */}
+                                <div className="lg:col-span-2 space-y-12">
+                                    <div className="flex flex-col md:flex-row items-center gap-10 p-10 rounded-[4rem] bg-white/[0.02] border border-white/5 relative overflow-hidden shadow-2xl">
+                                        <div className="w-56 h-56 rounded-[3rem] overflow-hidden border border-white/10 shrink-0 shadow-2xl">
+                                            <img src={currentReport.image} className="w-full h-full object-cover" alt="Building" />
+                                        </div>
+                                        <div className="flex-1 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${currentReport.status === 'SAFE' ? 'bg-green-500 text-white' : (currentReport.status === 'WARNING' ? 'bg-amber-500 text-black' : 'bg-red-600 text-white')}`}>
+                                                    {currentReport.status} LEVEL
+                                                </span>
+                                                <span className="text-slate-500 font-bold text-sm tracking-tighter px-4 border-l border-white/10">{currentReport.date}</span>
+                                            </div>
+                                            <h2 className="text-5xl font-black text-white tracking-tighter">{currentReport.building}</h2>
+                                            <div className="flex items-center gap-2 text-slate-400 font-medium">
+                                                <MapPin size={16} />
+                                                <span>지능형 구조 정밀 진단 시스템 분석 완료</span>
                                             </div>
                                         </div>
-                                    ))}
+                                        <div className="absolute top-0 right-0 p-8 text-blue-600/20"><ShieldCheck size={120} /></div>
+                                    </div>
+
+                                    {/* Detailed Analysis Section */}
+                                    <div className="space-y-8">
+                                        <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+                                            <FileText size={24} className="text-blue-500" />
+                                            <h3 className="text-2xl font-black text-white tracking-tight">구조 정밀 분석 리포트</h3>
+                                        </div>
+                                        <div className="p-10 rounded-[3rem] bg-white/[0.01] border border-white/5 leading-relaxed text-slate-300 text-lg font-medium space-y-6 shadow-inner">
+                                            <div className="flex items-start gap-4">
+                                                <Info size={24} className="text-blue-500 shrink-0 mt-1" />
+                                                <p>{currentReport.details}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-4 border-b border-white/5 pb-4 mt-12">
+                                                <TrendingUp size={24} className="text-green-500" />
+                                                <h3 className="text-2xl font-black text-white tracking-tight">AI 권고 개선 방안</h3>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {currentReport.recommendations.map((rec, i) => (
+                                                    <div key={i} className="p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/5 hover:border-blue-600/30 transition-all group">
+                                                        <div className="flex gap-5">
+                                                            <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+                                                                <CheckCircle2 size={24} />
+                                                            </div>
+                                                            <p className="text-slate-300 font-bold leading-tight group-hover:text-white transition-colors">{rec}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right: Scoring Card */}
+                                <div className="space-y-8">
+                                    <div className="p-12 rounded-[4rem] bg-gradient-to-br from-blue-600 to-blue-900 border border-white/10 text-center space-y-8 shadow-[0_30px_100px_rgba(37,99,235,0.3)]">
+                                        <div className="text-white/60 text-xs font-black uppercase tracking-[0.3em]">AI Total Score</div>
+                                        <div className="relative inline-block">
+                                            <svg className="w-48 h-48 transform -rotate-90">
+                                                <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/10" />
+                                                <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={2 * Math.PI * 88} strokeDashoffset={2 * Math.PI * 88 * (1 - currentReport.score / 100)} className="text-white" strokeLinecap="round" />
+                                            </svg>
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                                <span className="text-6xl font-black text-white tracking-tighter">{currentReport.score}</span>
+                                                <span className="text-xl font-bold text-white/60 ml-1">pt</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-2xl font-black text-white tracking-tight">최종 안전 등급 <span className="text-sky-300">{currentReport.status === 'SAFE' ? '우수' : (currentReport.status === 'WARNING' ? '보통' : '주의')}</span></p>
+                                            <p className="text-white/60 font-medium text-sm">상업용 건축물 평균 대비 {currentReport.score > 90 ? '상위 5%' : (currentReport.score > 80 ? '평균 수준' : '하위 15%')}</p>
+                                        </div>
+                                        <button className="w-full py-5 bg-white text-blue-900 font-black rounded-3xl hover:bg-slate-100 transition-all shadow-xl">
+                                            공식 인증서 PDF 발행
+                                        </button>
+                                    </div>
+
+                                    {/* Stats List */}
+                                    <div className="p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 space-y-6">
+                                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-4">세부 평가 항목</h4>
+                                        {[
+                                            { label: '지반 침하 가능성', val: '2.4%', color: 'blue' },
+                                            { label: '균열 밀집도', val: '매우 낮음', color: 'green' },
+                                            { label: '연식 대비 노후도', val: '양호', color: 'green' },
+                                            { label: '보강 필요성', val: currentReport.score > 85 ? '낮음' : '높음', color: currentReport.score > 85 ? 'blue' : 'amber' }
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex justify-between items-center group">
+                                                <span className="text-slate-400 font-bold text-sm group-hover:text-slate-300 transition-colors">{item.label}</span>
+                                                <span className={`text-${item.color}-500 font-black text-sm uppercase tracking-wider`}>{item.val}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
@@ -308,25 +428,30 @@ export default function App() {
                         <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto space-y-12">
                             <h2 className="text-5xl font-black tracking-tighter text-white">진단 <span className="text-blue-600">아카이브</span></h2>
                             <div className="space-y-6">
-                                {inspections.map(item => (
-                                    <div key={item.id} className="p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-all group shadow-xl">
+                                {inspections.length > 0 ? inspections.map(item => (
+                                    <button key={item.id} onClick={() => { setCurrentReport(item); setActiveTab('report-detail'); }} className="w-full text-left p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-all group shadow-xl">
                                         <div className="flex items-center gap-10">
                                             <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl border border-white/5">
                                                 <img src={item.image} className="w-full h-full object-cover" alt="Building" />
                                             </div>
                                             <div>
                                                 <p className="text-2xl font-black text-white mb-2">{item.building}</p>
-                                                <p className="text-slate-500 font-medium">{item.date} • {item.analysis}</p>
+                                                <p className="text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-md">{item.date} • {item.analysis}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-8">
-                                            <span className={`px-6 py-3 rounded-2xl text-xs font-black tracking-widest uppercase ${item.status === 'SAFE' ? 'text-green-400 border border-green-400/30' : 'text-red-400 border border-red-400/30'}`}>{item.status}</span>
-                                            <button className="p-4 rounded-xl bg-white/5 text-slate-400 group-hover:text-white group-hover:bg-blue-600 transition-all shadow-inner">
+                                            <span className={`px-6 py-3 rounded-2xl text-xs font-black tracking-widest uppercase ${item.status === 'SAFE' ? 'text-green-400 border border-green-400/30' : (item.status === 'WARNING' ? 'text-amber-400 border border-amber-400/30' : 'text-red-400 border border-red-400/30')}`}>{item.status}</span>
+                                            <div className="p-4 rounded-xl bg-white/5 text-slate-400 group-hover:text-white group-hover:bg-blue-600 transition-all shadow-inner">
                                                 <ArrowRight size={24} />
-                                            </button>
+                                            </div>
                                         </div>
+                                    </button>
+                                )) : (
+                                    <div className="py-32 text-center space-y-6 bg-white/[0.01] rounded-[4rem] border border-white/5 border-dashed">
+                                        <Activity size={64} className="text-slate-700 mx-auto" />
+                                        <p className="text-slate-600 font-black uppercase tracking-[0.4em] text-sm">기록된 진단 데이터가 없습니다</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </motion.div>
                     )}
@@ -426,7 +551,7 @@ export default function App() {
                                             </div>
                                             <div className="space-y-3 text-right">
                                                 <div className="text-slate-500 text-xs font-black uppercase tracking-[0.2em]">현재 위협 수준</div>
-                                                <div className="text-blue-600 font-black text-2xl tracking-tighter">계계산 완료 대기</div>
+                                                <div className="text-blue-600 font-black text-2xl tracking-tighter">계산 완료 대기</div>
                                             </div>
                                         </div>
                                     </div>
